@@ -109,6 +109,15 @@ Use the bottom footer to switch between Browse, Likes, Messages, and Profile.
 <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
 
   <div style="flex: 1; min-width: 250px; text-align: center;">
+    <img src="screenshots/splashscreen.png" alt="Splach Screen" width="220" />
+    <p><strong>Splash Screen</strong></p>
+
+  <div style="flex: 1; min-width: 250px; text-align: center;">
+    <img src="screenshots/login.png" alt="Login Screen" width="220" />
+    <p><strong>Login Screen</strong></p>
+  </div>
+
+  <div style="flex: 1; min-width: 250px; text-align: center;">
     <img src="screenshots/browse.png" alt="Browse Screen" width="220" />
     <p><strong>Browse Screen</strong></p>
   </div>
