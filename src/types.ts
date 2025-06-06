@@ -2,7 +2,7 @@ export type UserProfile = {
   id: string;
   name: string;
   age: number;
-  gender: 'Male' | 'Female' | 'Other';
+  gender: 'Male' | 'Female' | 'Other' | undefined;
   religion: string;
   caste: string;
   location: string;
@@ -24,4 +24,7 @@ export type RootStackParamList = {
   Profile: undefined;
   Browse: undefined;
   Likes: undefined;
+  CreateProfile: undefined;
+  Messages: undefined;
+  Chat: { userId: string };
 };

@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, Dimensions, Animated, SafeAreaView } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { UserProfile } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Footer from '../components/Footer';
 
-const LikesScreen = () => {
+const { width } = Dimensions.get('window');
+const SWIPE_THRESHOLD = width * 0.25;
+
+const LikesScreen: React.FC = () => {
   const [likedProfiles, setLikedProfiles] = useState<UserProfile[]>([]);
 
   useEffect(() => {
@@ -11,7 +16,7 @@ const LikesScreen = () => {
       try {
         const savedLiked = await AsyncStorage.getItem('likedProfiles');
         if (savedLiked) {
-          setLikedProfiles(JSON.parse(savedLiked));
+          setLikedProfiles(JSON.parse(savedLiked) || []);
         }
       } catch (error) {
         console.error('Error loading liked profiles:', error);
@@ -20,39 +25,97 @@ const LikesScreen = () => {
     loadLikedProfiles();
   }, []);
 
+  const handleSwipeRight = async (profileId: string) => {
+    const newLikedProfiles = likedProfiles.filter(profile => profile.id !== profileId);
+    setLikedProfiles(newLikedProfiles);
+    try {
+      await AsyncStorage.setItem('likedProfiles', JSON.stringify(newLikedProfiles));
+    } catch (error) {
+      console.error('Error updating liked profiles:', error);
+    }
+  };
+
+  const renderProfile = ({ item }: { item: UserProfile }) => {
+    const translateX = new Animated.Value(0);
+
+    const onGestureEvent = Animated.event(
+      [{ nativeEvent: { translationX: translateX } }],
+      { useNativeDriver: true }
+    );
+
+    const onHandlerStateChange = (event: any) => {
+      if (event.nativeEvent.oldState === State.ACTIVE) {
+        const { translationX } = event.nativeEvent;
+        if (translationX > SWIPE_THRESHOLD) {
+          Animated.timing(translateX, {
+            toValue: width,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            handleSwipeRight(item.id);
+          });
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      }
+    };
+
+    return (
+      <PanGestureHandler
+        onGestureEvent={onGestureEvent}
+        onHandlerStateChange={onHandlerStateChange}
+      >
+        <Animated.View
+          style={[
+            styles.profileCard,
+            { transform: [{ translateX }] }
+          ]}
+        >
+          <Image source={{ uri: item.photo }} style={styles.profileImage} />
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{item.name}, {item.age}</Text>
+            <Text style={styles.location}>{item.location}</Text>
+            <Text style={styles.bio}>{item.bio}</Text>
+          </View>
+        </Animated.View>
+      </PanGestureHandler>
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Your Liked Profiles</Text>
-      
-      {likedProfiles.length > 0 ? (
-        <FlatList
-          data={likedProfiles}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.profileCard}>
-              <Image source={{ uri: item.photo }} style={styles.profileImage} />
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{item.name}, {item.age}</Text>
-                <Text style={styles.profileLocation}>{item.location}</Text>
-                <Text style={styles.profileBio}>{item.bio}</Text>
-              </View>
-            </View>
-          )}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>You haven't liked any profiles yet</Text>
-        </View>
-      )}
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        
+        {likedProfiles.length > 0 ? (
+          <FlatList
+            data={likedProfiles}
+            keyExtractor={(item) => item.id}
+            renderItem={renderProfile}
+            style={styles.list}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>You haven't liked any profiles yet</Text>
+          </View>
+        )}
+      </View>
+      <Footer activeScreen="Likes" />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f5f5f5',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    paddingBottom: 70, // Space for footer
   },
   title: {
     fontSize: 24,
@@ -60,12 +123,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#333',
   },
+  list: {
+    flex: 1,
+  },
   profileCard: {
     flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
+    marginHorizontal: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -82,17 +149,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  profileName: {
+  name: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  profileLocation: {
+  location: {
     fontSize: 14,
     color: '#666',
     marginBottom: 5,
   },
-  profileBio: {
+  bio: {
     fontSize: 14,
     color: '#444',
   },

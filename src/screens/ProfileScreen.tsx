@@ -1,33 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProfile } from '../types';
 import { useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList, UserProfile } from '../types';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Profile'>;
-const ProfileScreen = () => {
+
+const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
-  const [isLoading, setIsLoading] = useState(false);
-  const [profile, setProfile] = useState<UserProfile>({
-    id: '',
+  const [profile, setProfile] = useState<Partial<UserProfile>>({
+    id: 'user',
     name: '',
     age: 0,
-    gender: 'Male',
+    gender: undefined,
     religion: '',
     caste: '',
     location: '',
     bio: '',
-    photo: undefined,
+    photo: '',
   });
+
+  const genderOptions = [
+    { label: 'Select Gender', value: undefined },
+    { label: 'Male', value: 'Male' },
+    { label: 'Female', value: 'Female' },
+  ];
+  const religionOptions = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain'];
+  const casteOptions: { [key: string]: string[] } = {
+    Hindu: ['Brahmin', 'Kshatriya', 'Gupta', 'Patel', 'Reddy', 'Nair', 'Kayastha', 'Menon'],
+    Muslim: ['Sunni', 'Shia'],
+    Christian: ['Catholic'],
+    Sikh: ['Jat', 'Arora'],
+    Jain: ['Svetambara', 'Digambara'],
+  };
+  const locationOptions = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur'];
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const savedProfile = await AsyncStorage.getItem('userProfile');
         if (savedProfile) {
-          setProfile(JSON.parse(savedProfile));
+          const parsedProfile: Partial<UserProfile> = JSON.parse(savedProfile);
+          // Ensure gender is undefined if not set
+          if (!parsedProfile.gender) {
+            parsedProfile.gender = undefined;
+          }
+          setProfile(parsedProfile);
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -36,127 +57,137 @@ const ProfileScreen = () => {
     loadProfile();
   }, []);
 
-   const handleSave = async () => {
-    if (!profile.name || !profile.age || !profile.religion || !profile.caste || !profile.location) {
-      Alert.alert('Error', 'Please fill all required fields');
-      return;
-    }
-
-    setIsLoading(true);
+  const handleSave = async () => {
     try {
+      if (!profile.gender) {
+        alert('Please select a gender.');
+        return;
+      }
+      
       await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
-      await AsyncStorage.setItem('profileComplete', 'true');
-      navigation.navigate('Browse'); // Navigate to Browse screen after saving
+      alert('Profile saved successfully!');
     } catch (error) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfile({ ...profile, photo: result.assets[0].uri });
+      alert('Failed to save profile.');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Your Profile</Text>
-      
-      <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
-        {profile.photo ? (
-          <Image source={{ uri: profile.photo }} style={styles.profileImage} />
-        ) : (
-          <Text style={styles.imagePlaceholder}>Add Photo</Text>
-        )}
-      </TouchableOpacity>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={profile.name}
-        onChangeText={(text) => setProfile({ ...profile, name: text })}
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Age"
-        value={profile.age.toString()}
-        onChangeText={(text) => setProfile({ ...profile, age: parseInt(text) || 0 })}
-        keyboardType="numeric"
-      />
-      
-      <View style={styles.radioGroup}>
-        <Text style={styles.radioLabel}>Gender:</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.form}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.name}
+            onChangeText={(text) => setProfile({ ...profile, name: text })}
+            placeholder="Enter your name"
+          />
+          <Text style={styles.label}>Age</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.age ? profile.age.toString() : ''}
+            onChangeText={(text) => setProfile({ ...profile, age: parseInt(text) || 0 })}
+            placeholder="Enter your age"
+            keyboardType="numeric"
+          />
+          <Text style={styles.label}>Gender</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              style={styles.picker}
+              selectedValue={profile.gender}
+              onValueChange={(value) => setProfile({ ...profile, gender: value })}
+              itemStyle={styles.pickerItem}
+            >
+              {genderOptions.map((option) => (
+                <Picker.Item key={option.label} label={option.label} value={option.value} />
+              ))}
+            </Picker>
+          </View>
+          <Text style={styles.label}>Religion</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              style={styles.picker}
+              selectedValue={profile.religion}
+              onValueChange={(value) => setProfile({ ...profile, religion: value, caste: '' })}
+              itemStyle={styles.pickerItem}
+            >
+              {religionOptions.map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+          <Text style={styles.label}>Caste</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              style={styles.picker}
+              selectedValue={profile.caste}
+              onValueChange={(value) => setProfile({ ...profile, caste: value })}
+              enabled={!!profile.religion}
+              itemStyle={styles.pickerItem}
+            >
+              {(casteOptions[profile.religion || 'Hindu'] || []).map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+          <Text style={styles.label}>Location</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              style={styles.picker}
+              selectedValue={profile.location}
+              onValueChange={(value) => setProfile({ ...profile, location: value })}
+              itemStyle={styles.pickerItem}
+            >
+              {locationOptions.map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+          <Text style={styles.label}>Bio</Text>
+          <TextInput
+            style={[styles.input, styles.bioInput]}
+            value={profile.bio}
+            onChangeText={(text) => setProfile({ ...profile, bio: text })}
+            placeholder="Tell us about yourself"
+            multiline
+          />
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>Save Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.radioButton, profile.gender === 'Male' && styles.radioSelected]}
-          onPress={() => setProfile({ ...profile, gender: 'Male' })}
+          style={styles.footerItem}
+          onPress={() => navigation.navigate('Browse')}
         >
-          <Text>Male</Text>
+          <Icon name="explore" size={24} color="#666" />
+          <Text style={styles.footerText}>Browse</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.radioButton, profile.gender === 'Female' && styles.radioSelected]}
-          onPress={() => setProfile({ ...profile, gender: 'Female' })}
+          style={styles.footerItem}
+          onPress={() => navigation.navigate('Likes')}
         >
-          <Text>Female</Text>
+          <Icon name="favorite" size={24} color="#666" />
+          <Text style={styles.footerText}>Likes</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.radioButton, profile.gender === 'Other' && styles.radioSelected]}
-          onPress={() => setProfile({ ...profile, gender: 'Other' })}
+          style={styles.footerItem}
+          onPress={() => navigation.navigate('Messages')}
         >
-          <Text>Other</Text>
+          <Icon name="message" size={24} color="#666" />
+          <Text style={styles.footerText}>Messages</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.footerItem, { backgroundColor: '#FF6B6B' }]}
+          onPress={() => navigation.navigate('Profile')}
+        >
+          <Icon name="person" size={24} color="white" />
+          <Text style={[styles.footerText, { color: 'white' }]}>Profile</Text>
         </TouchableOpacity>
       </View>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Religion"
-        value={profile.religion}
-        onChangeText={(text) => setProfile({ ...profile, religion: text })}
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Caste"
-        value={profile.caste}
-        onChangeText={(text) => setProfile({ ...profile, caste: text })}
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Location"
-        value={profile.location}
-        onChangeText={(text) => setProfile({ ...profile, location: text })}
-      />
-      
-      <TextInput
-        style={[styles.input, styles.bioInput]}
-        placeholder="Short Bio"
-        value={profile.bio}
-        onChangeText={(text) => setProfile({ ...profile, bio: text })}
-        multiline
-        numberOfLines={4}
-      />
-      
-         
-      <TouchableOpacity 
-        style={styles.saveButton} 
-        onPress={handleSave}
-        disabled={isLoading}
-      >
-        <Text style={styles.saveButtonText}>
-          {isLoading ? 'Saving...' : 'Save Profile & Continue'}
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -164,79 +195,95 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingTop: 10,
+  },
+  scrollContent: {
+    padding: 15,
+    paddingBottom: 80, // Prevent footer overlap
+  },
+  form: {
+    backgroundColor: 'white',
+    borderRadius: 10,
     padding: 20,
-    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+  label: {
+    fontSize: 16,
     color: '#333',
-  },
-  imageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#f0f0f0',
-    alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  imagePlaceholder: {
-    color: '#666',
+    marginBottom: 5,
   },
   input: {
-    height: 50,
+    height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
-    marginBottom: 15,
-    padding: 15,
     borderRadius: 8,
-    fontSize: 16,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    backgroundColor: 'white',
   },
   bioInput: {
-    height: 100,
+    height: 80,
     textAlignVertical: 'top',
   },
-  radioGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  radioLabel: {
-    marginRight: 10,
-  },
-  radioButton: {
-    padding: 10,
-    marginRight: 10,
-    borderWidth: 1,
+  pickerContainer: {
     borderColor: '#ddd',
-    borderRadius: 5,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    backgroundColor: 'white',
+    overflow: 'hidden',
   },
-  radioSelected: {
-    backgroundColor: '#FF6B6B',
-    borderColor: '#FF6B6B',
+  picker: {
+    height: 50, // Increased for full text visibility
+  },
+  pickerItem: {
+    fontSize: 16,
+    color: '#333',
   },
   saveButton: {
     backgroundColor: '#FF6B6B',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 20,
   },
   saveButtonText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  footerItem: {
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 5,
+  },
 });
 
 export default ProfileScreen;
-
