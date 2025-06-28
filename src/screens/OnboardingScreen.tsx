@@ -1,37 +1,45 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../types';
 
+// Navigation prop type for OnboardingScreen
 type OnboardingScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Onboarding'>;
 
-const OnboardingScreen = () => {
+// Component for the onboarding screen to introduce the app and navigate to login
+const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../../assets/matrimony-logo.jpg')} style={styles.logo} />
+    <SafeAreaView style={styles.screenContainer}>
+      {/* App logo */}
+      <Image
+        source={require('../../assets/matrimony-logo.jpg')} // TODO: Verify asset path
+        style={styles.logo}
+      />
+      {/* Title and subtitle */}
       <Text style={styles.title}>Find Your Perfect Match</Text>
       <Text style={styles.subtitle}>Join thousands of people finding their life partners</Text>
-      
-      <TouchableOpacity 
-        style={styles.button}
+      {/* Navigation button to login */}
+      <TouchableOpacity
+        style={styles.startButton}
         onPress={() => navigation.navigate('Login')}
       >
-        <Text style={styles.buttonText}>Get Started</Text>
+        <Text style={styles.startButtonText}>Get Started</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
+// Styles for the OnboardingScreen component
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#f5f5f5",
   },
   logo: {
     width: 150,
@@ -40,27 +48,27 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
-    color: '#333',
+    color: "#333",
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 30,
-    color: '#666',
+    color: "#666",
     paddingHorizontal: 20,
   },
-  button: {
-    backgroundColor: '#FF6B6B',
+  startButton: {
+    backgroundColor: "#FF6B6B",
     padding: 15,
     borderRadius: 30,
-    width: '80%',
-    alignItems: 'center',
+    width: "80%",
+    alignItems: "center",
   },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  startButtonText: {
+    color: "white",
+    fontWeight: "bold",
     fontSize: 16,
   },
 });

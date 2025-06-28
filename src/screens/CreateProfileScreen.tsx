@@ -7,18 +7,29 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Platform,
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../types';
 
+// Navigation prop type for ProfileCreationScreen
+type ProfileCreationNavigationProp = StackNavigationProp<RootStackParamList, 'CreateProfile'>;
+
+// Type definitions for form fields
 type Gender = 'male' | 'female' | 'other' | '';
 type Religion = 'hinduism' | 'islam' | 'christianity' | 'sikhism' | 'buddhism' | 'jainism' | 'other' | '';
 type Caste = 'brahmin' | 'kshatriya' | 'vaishya' | 'shudra' | 'other' | '';
 
-const ProfileCreationScreen = ({ navigation }: { navigation: any }) => {
+// Props interface for ProfileCreationScreen
+interface ProfileCreationProps {
+  navigation: ProfileCreationNavigationProp;
+}
+
+// Component for creating a user profile with form inputs and image upload
+const ProfileCreationScreen: React.FC<ProfileCreationProps> = ({ navigation }) => {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<Gender>('');
@@ -28,66 +39,80 @@ const ProfileCreationScreen = ({ navigation }: { navigation: any }) => {
   const [bio, setBio] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
+  // Request permission and pick an image from the library
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Denied', 'Please grant permission to access your photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
 
-    if (!result.canceled && result.assets.length > 0) {
+    if (!result.canceled && result.assets?.[0]?.uri) {
       setProfileImage(result.assets[0].uri);
     }
   };
 
+  // Validate and submit profile data
   const handleSubmit = () => {
     if (!name || !age || !gender || !religion || !caste || !location) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
 
-    // Here you would typically save the profile data
-    // Then navigate to the next screen
+    const ageNumber = Number(age);
+    if (isNaN(ageNumber) || ageNumber < 18 || ageNumber > 120) {
+      Alert.alert('Error', 'Please enter a valid age (18–120)');
+      return;
+    }
+
+    // TODO: Save profile data (e.g., to AsyncStorage or backend)
     navigation.navigate('Browse');
   };
 
   return (
-    <View style={styles.container}>
-      
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.formGroup}>
+    <View style={styles.screenContainer}>
+      <ScrollView contentContainerStyle={styles.formContent}>
+        {/* Name input */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Name</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter your name"
-            placeholderTextColor="#8b5b5d"
+            placeholderTextColor="#666"
             value={name}
             onChangeText={setName}
           />
         </View>
 
-        <View style={styles.formGroup}>
+        {/* Age input */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Age</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter your age"
-            placeholderTextColor="#8b5b5d"
+            placeholderTextColor="#666"
             keyboardType="numeric"
             value={age}
             onChangeText={setAge}
           />
         </View>
 
-        <View style={styles.formGroup}>
+        {/* Gender picker */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Gender</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={gender}
               onValueChange={(itemValue: Gender) => setGender(itemValue)}
               style={styles.picker}
-              dropdownIconColor="#8b5b5d"
+              dropdownIconColor="#666"
             >
               <Picker.Item label="Select gender" value="" />
               <Picker.Item label="Male" value="male" />
@@ -97,14 +122,15 @@ const ProfileCreationScreen = ({ navigation }: { navigation: any }) => {
           </View>
         </View>
 
-        <View style={styles.formGroup}>
+        {/* Religion picker */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Religion</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={religion}
               onValueChange={(itemValue: Religion) => setReligion(itemValue)}
               style={styles.picker}
-              dropdownIconColor="#8b5b5d"
+              dropdownIconColor="#666"
             >
               <Picker.Item label="Select religion" value="" />
               <Picker.Item label="Hinduism" value="hinduism" />
@@ -118,14 +144,15 @@ const ProfileCreationScreen = ({ navigation }: { navigation: any }) => {
           </View>
         </View>
 
-        <View style={styles.formGroup}>
+        {/* Caste picker */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Caste</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={caste}
               onValueChange={(itemValue: Caste) => setCaste(itemValue)}
               style={styles.picker}
-              dropdownIconColor="#8b5b5d"
+              dropdownIconColor="#666"
             >
               <Picker.Item label="Select caste" value="" />
               <Picker.Item label="Brahmin" value="brahmin" />
@@ -137,23 +164,25 @@ const ProfileCreationScreen = ({ navigation }: { navigation: any }) => {
           </View>
         </View>
 
-        <View style={styles.formGroup}>
+        {/* Location input */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Location</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter your location"
-            placeholderTextColor="#8b5b5d"
+            placeholderTextColor="#666"
             value={location}
             onChangeText={setLocation}
           />
         </View>
 
-        <View style={styles.formGroup}>
+        {/* Bio input */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Short Bio</Text>
           <TextInput
             style={[styles.input, styles.bioInput]}
             placeholder="Tell us a little about yourself"
-            placeholderTextColor="#8b5b5d"
+            placeholderTextColor="#666"
             multiline
             numberOfLines={4}
             value={bio}
@@ -161,27 +190,23 @@ const ProfileCreationScreen = ({ navigation }: { navigation: any }) => {
           />
         </View>
 
-        <View style={styles.formGroup}>
+        {/* Profile picture upload */}
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Profile Picture</Text>
           <TouchableOpacity style={styles.imageUploadContainer} onPress={pickImage}>
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <Ionicons name="camera" size={36} color="#8b5b5d" />
+                <Ionicons name="camera" size={36} color="#666" />
+                <Text style={styles.imageUploadTitle}>Add Profile Picture</Text>
               </View>
             )}
-            <View style={styles.imageUploadText}>
-              <Text style={styles.imageUploadTitle}>Add Profile Picture</Text>
-              <Text style={styles.imageUploadSubtitle}>Upload a clear photo of yourself</Text>
-            </View>
-            <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-              <Text style={styles.uploadButtonText}>Upload Photo</Text>
-            </TouchableOpacity>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
+      {/* Submit button */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
           <Text style={styles.submitButtonText}>Create Profile</Text>
@@ -191,147 +216,97 @@ const ProfileCreationScreen = ({ navigation }: { navigation: any }) => {
   );
 };
 
+// Styles for the ProfileCreationScreen component
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
-    backgroundColor: '#fbf9f9',
+    backgroundColor: "#f5f5f5",
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e3d4d5',
-    backgroundColor: '#fbf9f9',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#191011',
-    textAlign: 'center',
-    flex: 1,
-  },
-  content: {
+  formContent: {
     padding: 16,
     paddingBottom: 80,
   },
-  formGroup: {
+  inputGroup: {
     marginBottom: 16,
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#4a3b3c',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#e3d4d5',
+    borderColor: "#ddd",
     borderRadius: 12,
     height: 48,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#191011',
+    color: "#333",
   },
   pickerContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#e3d4d5',
+    borderColor: "#ddd",
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   picker: {
     height: 48,
-    color: '#191011',
+    color: "#333",
   },
   bioInput: {
     height: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
     paddingTop: 12,
   },
   imageUploadContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 24,
     borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#e3d4d5',
+    borderStyle: "dashed",
+    borderColor: "#ddd",
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
   },
   imagePlaceholder: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 40,
-    backgroundColor: '#f1e9ea',
+    alignItems: "center",
+    padding: 16,
   },
   profileImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
   },
-  imageUploadText: {
-    alignItems: 'center',
-    marginVertical: 8,
-  },
   imageUploadTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#191011',
-    marginBottom: 4,
-  },
-  imageUploadSubtitle: {
-    fontSize: 14,
-    color: '#4a3b3c',
-    textAlign: 'center',
-  },
-  uploadButton: {
-    minWidth: 100,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#f1e9ea',
-  },
-  uploadButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#191011',
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 8,
   },
   footer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e3d4d5',
-    backgroundColor: '#fbf9f9',
+    borderTopColor: "#ddd",
+    backgroundColor: "#f5f5f5",
   },
   submitButton: {
-    width: '100%',
+    width: "100%",
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 12,
-    backgroundColor: '#e8b4b7',
+    backgroundColor: "#FF6B6B",
   },
   submitButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#191011',
+    fontWeight: "bold",
+    color: "white",
   },
 });
 
