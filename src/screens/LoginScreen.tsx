@@ -1,80 +1,89 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { RootStackParamList } from '../types';
 
+// Navigation prop type for LoginScreen
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
-const LoginScreen = () => {
+// Component for user login via email or mobile with social login options
+const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const [emailOrMobile, setEmailOrMobile] = useState('');
 
+  // Validate and handle login continuation
   const handleContinue = async () => {
     if (!emailOrMobile) {
       Alert.alert('Error', 'Please enter your email or mobile number');
       return;
     }
-    
+
+    // Basic email/mobile validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!emailRegex.test(emailOrMobile) && !mobileRegex.test(emailOrMobile)) {
+      Alert.alert('Error', 'Please enter a valid email or 10-digit mobile number');
+      return;
+    }
+
     try {
-        const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const parsedData = JSON.parse(userData);
-        if (parsedData.email === emailOrMobile || parsedData.mobile === emailOrMobile) {
-          await AsyncStorage.setItem('isLoggedIn', 'true');
-          
-          // Check if profile exists
-          const userProfile = await AsyncStorage.getItem('userProfile');
-          
-          if (userProfile) {
-            // If profile exists, navigate to Browse screen
-            navigation.navigate('Browse');
-          } else {
-            // If profile doesn't exist, navigate to Create Profile screen
-            navigation.navigate('CreateProfile');
-          }
-        } else {
-          Alert.alert('Error', 'No account found with these details');
-        }
-      } else {
+      const userData = await AsyncStorage.getItem('userData');
+      if (!userData) {
         Alert.alert('Error', 'No user found. Please register.');
+        return;
       }
+
+      const parsedData = JSON.parse(userData);
+      if (
+        !parsedData.email ||
+        !parsedData.mobile ||
+        (parsedData.email !== emailOrMobile && parsedData.mobile !== emailOrMobile)
+      ) {
+        Alert.alert('Error', 'No account found with these details');
+        return;
+      }
+
+      await AsyncStorage.setItem('isLoggedIn', 'true');
+      const userProfile = await AsyncStorage.getItem('userProfile');
+      navigation.navigate(userProfile ? 'Browse' : 'CreateProfile');
     } catch (error) {
-      console.error('Error saving data:', error);
-      Alert.alert('Error', 'An error occurred while saving your data. Please try again.');
+      console.error('Failed to process login:', error);
+      Alert.alert('Error', 'An error occurred during login. Please try again.');
     }
   };
 
+  // Placeholder for Google login implementation
   const handleGoogleLogin = () => {
+    // TODO: Implement Google login
     Alert.alert('Info', 'Google login would be implemented here');
   };
 
-  // const handlePhoneLogin = () => {
-  //   navigation.navigate('PhoneLogin'); // You might want to create this screen
-  // };
-
   return (
-    <View style={styles.container}>
+    <View style={styles.screenContainer}>
+      {/* App logo */}
       <View style={styles.header}>
-        <Image 
-          source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBPAfibtKYitXWfm46DLT95Jnldbrw4dtzmYSN6nRpar3Zo-kUNwKUm-qOgPP8GbIZ5hv6YYzhpjp6CaerApBmfmCmz6Pwga50SjJJEnjBz6kn7p5d2kwPZYR0Hp9rpapyyGeAJwMmDOfMEklrx_abEdudI5m7neP2RVLYWzYtwB6UtYInXX9u-4DVrjCQ0T2XoPOUn-KJraZqjWaBuaSXAQ5PvsuKJIS2jS6U5_jJ3Vc4tErYhZEkySUaKkE3nT2wA9DzNX-5HuSFN' }} 
+        <Image
+          source={{ uri: 'https://example.com/logo.png' }} // TODO: Replace with local asset or constant
           style={styles.logo}
         />
       </View>
 
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Let's get started</Text>
+      {/* Title and subtitle */}
+      <View style={styles.titleWrapper}>
+        <Text style={styles.title}>Let's Get Started</Text>
         <Text style={styles.subtitle}>Enter your details to sign up or log in.</Text>
       </View>
 
-      <View style={styles.inputContainer}>
-        <Icon name="person" size={24} color="#8B5B5D" style={styles.inputIcon} />
+      {/* Email or mobile input */}
+      <View style={styles.inputWrapper}>
+        <Icon name="person" size={24} color="#666" style={styles.inputIcon} />
         <TextInput
           style={styles.input}
           placeholder="Email or Mobile"
-          placeholderTextColor="#A8898B"
+          placeholderTextColor="#666"
           value={emailOrMobile}
           onChangeText={setEmailOrMobile}
           keyboardType="email-address"
@@ -82,44 +91,59 @@ const LoginScreen = () => {
         />
       </View>
 
+      {/* Continue button */}
       <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
         <Text style={styles.continueButtonText}>Continue</Text>
       </TouchableOpacity>
 
-      <View style={styles.dividerContainer}>
+      {/* Divider */}
+      <View style={styles.dividerWrapper}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividierText}>or</Text>
+        <Text style={styles.dividerText}>or</Text>
         <View style={styles.dividerLine} />
       </View>
 
-      <View style={styles.socialButtonsContainer}>
+      {/* Social login buttons */}
+      <View style={styles.socialButtonsWrapper}>
         <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-          <Image 
-            source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCgPpKcsOzJOsKZ-8DWGgn36Rx4OYlYTEJnDqErEnWc-swIGD6KfyBSYceoeNBUWzl__fwSdk0kwRom-sT0U_9VdksZmWWDIpVVpIEAKwoqiEwr7v-wiTgPOdYvtJ5zEa-uXglfjmd84M33dcKMIFDkBd_TNE6mWR6IXjBkxYxhCP2-e-XyyJ52gG_cGr4buneNbCofCsvekSL21Rq3FAfwF88m-wiyAp2ySHt4LgSGADv08OBg_jCkBqiXs1F8wbuw0YvLTF_jdWnw' }}
+          <Image
+            source={{ uri: 'https://example.com/google-logo.png' }} // TODO: Replace with local asset or constant
             style={styles.socialIcon}
           />
           <Text style={styles.socialButtonText}>Continue with Google</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.socialButton} onPress={() => Alert.alert('Info', 'Phone login would be implemented here')}>
-          <Icon name="call" size={24} color="#191011" style={styles.socialIcon} />
+        <TouchableOpacity
+          style={styles.socialButton}
+          onPress={() => Alert.alert('Info', 'Phone login would be implemented here')}
+        >
+          <Icon name="call" size={24} color="#333" style={styles.socialIcon} />
           <Text style={styles.socialButtonText}>Continue with Phone</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.signupContainer}>
-  <Text style={styles.signupText}>Don't have an account?</Text>
-  <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-    <Text style={styles.signupButton}>Sign up</Text>
-  </TouchableOpacity>
-</View>
+
+      {/* Register link */}
+      <View style={styles.registerLinkWrapper}>
+        <Text style={styles.registerText}>Don't have an account?</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.registerButton}>Sign Up</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Footer with terms and privacy links */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           By continuing, you agree to our{' '}
-          <Text style={styles.footerLink} onPress={() => Alert.alert('Terms', 'Terms of Service would be shown here')}>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Alert.alert('Terms', 'Terms of Service would be shown here')}
+          >
             Terms of Service
           </Text>{' '}
           and{' '}
-          <Text style={styles.footerLink} onPress={() => Alert.alert('Privacy', 'Privacy Policy would be shown here')}>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Alert.alert('Privacy', 'Privacy Policy would be shown here')}
+          >
             Privacy Policy
           </Text>.
         </Text>
@@ -128,99 +152,102 @@ const LoginScreen = () => {
   );
 };
 
+// Styles for the LoginScreen component
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
-    backgroundColor: '#FDFBFC',
+    backgroundColor: "#f5f5f5",
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 32,
-    justifyContent: 'space-between',
+    paddingVertical: 32,
+    justifyContent: "space-between",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   logo: {
     width: 64,
     height: 64,
   },
-  titleContainer: {
+  titleWrapper: {
     marginBottom: 32,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: 28,
-    fontWeight: '900',
-    color: '#191011',
+    fontWeight: "900",
+    color: "#333",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#8B5B5D',
+    color: "#666",
   },
-  inputContainer: {
-    marginBottom: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F1E9EA',
+    borderColor: "#ddd",
     paddingHorizontal: 16,
     height: 56,
+    marginBottom: 24,
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    height: '100%',
+    height: "100%",
     fontSize: 16,
-    color: '#191011',
+    color: "#333",
   },
   continueButton: {
-    backgroundColor: '#E8B4B7',
+    backgroundColor: "#FF6B6B",
     borderRadius: 16,
     height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#E8B4B7',
-    shadowOffset: { width: 0, height: 4 },
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#FF6B6B",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 4,
   },
   continueButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  dividerWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#F1E9EA',
+    backgroundColor: "#ddd",
   },
-  dividierText: {
+  dividerText: {
     marginHorizontal: 16,
     fontSize: 14,
-    color: '#8B5B5D',
+    color: "#666",
   },
-  socialButtonsContainer: {
+  socialButtonsWrapper: {
     marginBottom: 24,
   },
   socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#E0D2D3',
+    borderColor: "#ddd",
     borderRadius: 16,
     height: 56,
     marginBottom: 16,
@@ -233,38 +260,37 @@ const styles = StyleSheet.create({
   },
   socialButtonText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#191011',
+    fontWeight: "500",
+    color: "#333",
+  },
+  registerLinkWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 16,
+  },
+  registerText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  registerButton: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF6B6B",
+    marginLeft: 4,
   },
   footer: {
     marginTop: 16,
   },
   footerText: {
     fontSize: 12,
-    color: '#A8898B',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
   },
   footerLink: {
-    color: '#E8B4B7',
-    fontWeight: '500',
+    color: "#FF6B6B",
+    fontWeight: "500",
   },
-  signupContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginTop: 8,
-  marginBottom: 16,
-},
-signupText: {
-  fontSize: 14,
-  color: '#8B5B5D',
-},
-signupButton: {
-  fontSize: 14,
-  fontWeight: '600',
-  color: '#E8B4B7',
-  marginLeft: 4,
-},
 });
 
 export default LoginScreen;
